@@ -56,7 +56,7 @@ const mainNavItems: NavItem[] = [
     { title: 'Home', href: '/' },
     { title: 'Hotels', href: '/rooms' },
     { title: 'Offers', href: '/offers' },
-    { title: 'My Bookings', href: '/bookings' },
+    { title: 'My Bookings', href: '/account/bookings' },
     { title: 'Contact', href: '/contact' },
 ];
 const activeItemStyles =
@@ -217,7 +217,7 @@ export function AppHeader({ breadcrumbs = [] }: Props) {
                                 >
                                     <Avatar className="size-8 overflow-hidden rounded-full">
                                         <AvatarImage
-                                            src={typeof auth.user?.avatar === 'string' ? auth.user.avatar : undefined}
+                                            src={auth.user?.avatar_url ?? undefined}
                                             alt={auth.user?.name}
                                         />
                                         <AvatarFallback className="rounded-lg bg-neutral-200 text-black dark:bg-neutral-700 dark:text-white">

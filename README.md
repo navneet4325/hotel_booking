@@ -114,6 +114,9 @@ STRIPE_CURRENCY=usd
 RAZORPAY_KEY=
 RAZORPAY_SECRET=
 RAZORPAY_CURRENCY=INR
+
+# Optional: keep true for local/demo only
+PAYMENTS_DEMO_MODE=true
 ```
 
 ### 3. Run migrations and seed demo data
@@ -158,6 +161,11 @@ composer run dev
 - `GET /api/v1/rooms/{room}`
 - `GET /api/v1/availability?room_id={id}&check_in=YYYY-MM-DD&check_out=YYYY-MM-DD`
 - `POST /api/v1/availability`
+
+## SEO and Crawlability
+
+- `GET /sitemap.xml` serves room + static-page URLs.
+- `public/robots.txt` includes the sitemap reference.
 
 ## Useful Commands
 

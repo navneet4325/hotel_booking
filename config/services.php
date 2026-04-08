@@ -48,4 +48,8 @@ return [
         'currency' => env('RAZORPAY_CURRENCY', 'INR'),
     ],
 
+    'payments' => [
+        'demo_mode' => env('PAYMENTS_DEMO_MODE', false),
+    ],
+
 ];

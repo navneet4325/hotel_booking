@@ -240,3 +240,56 @@ test('unknown location search does not hide all rooms in single hotel mode', fun
         ->where('rooms.0.type', 'Searchable Deluxe Suite')
     );
 });
+
+test('payment success route renders a verification handoff instead of mutating on get', function () {
+    $user = User::factory()->create();
+    $room = Room::factory()->create();
+    $booking = Booking::factory()->for($user)->for($room)->create([
+        'status' => Booking::STATUS_PENDING,
+        'payment_status' => Booking::PAYMENT_PENDING,
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->get(route('payments.success', [
+            'booking' => $booking,
+            'session_id' => 'cs_test_123',
+        ]));
+
+    $response->assertOk();
+
+    expect($booking->fresh()->payment_status)->toBe(Booking::PAYMENT_PENDING);
+});
+
+test('stripe confirmation fails when session id does not match booking payment reference', function () {
+    config([
+        'services.stripe.key' => 'pk_test_example',
+        'services.stripe.secret' => 'sk_test_example',
+    ]);
+
+    $user = User::factory()->create();
+    $room = Room::factory()->create();
+    $booking = Booking::factory()->for($user)->for($room)->create([
+        'status' => Booking::STATUS_PENDING,
+        'payment_status' => Booking::PAYMENT_PENDING,
+    ]);
+
+    Payment::query()->create([
+        'booking_id' => $booking->id,
+        'provider' => 'stripe',
+        'payment_method' => 'stripe',
+        'payment_status' => Booking::PAYMENT_PENDING,
+        'amount' => $booking->total_price,
+        'currency' => 'USD',
+        'gateway_reference' => 'cs_test_expected',
+    ]);
+
+    $response = $this
+        ->actingAs($user)
+        ->post(route('payments.success.confirm', $booking), [
+            'session_id' => 'cs_test_wrong',
+        ]);
+
+    $response->assertRedirect(route('account.bookings'));
+    expect($booking->fresh()->payment_status)->toBe(Booking::PAYMENT_PENDING);
+});

@@ -77,6 +77,10 @@ class PaymentGatewayService
 
     public function completeDemoPayment(Booking $booking): void
     {
+        if (! $this->canUseDemoMode()) {
+            throw new RuntimeException('Demo payment mode is disabled in this environment.');
+        }
+
         $method = $booking->payment?->payment_method ?: 'stripe';
         $payment = $this->createOrUpdatePayment($booking, $method);
 
@@ -97,9 +101,24 @@ class PaymentGatewayService
     public function confirmStripePayment(Booking $booking, string $sessionId): void
     {
         if (! $this->hasStripeCredentials()) {
+            if (! $this->canUseDemoMode()) {
+                throw new RuntimeException('Stripe credentials are required in this environment.');
+            }
+
             $this->completeDemoPayment($booking);
 
             return;
+        }
+
+        if ($sessionId === '') {
+            throw new RuntimeException('Stripe session id is required.');
+        }
+
+        $payment = $booking->payment ?: $this->createOrUpdatePayment($booking, 'stripe');
+        $expectedSessionId = (string) ($payment->gateway_reference ?? '');
+
+        if ($expectedSessionId === '' || ! hash_equals($expectedSessionId, $sessionId)) {
+            throw new RuntimeException('Stripe session does not match this booking.');
         }
 
         $response = Http::withToken((string) config('services.stripe.secret'))
@@ -115,7 +134,23 @@ class PaymentGatewayService
             throw new RuntimeException('Payment has not been completed yet.');
         }
 
-        $payment = $this->createOrUpdatePayment($booking, 'stripe');
+        if ((string) data_get($session, 'metadata.booking_id') !== (string) $booking->id) {
+            throw new RuntimeException('Stripe session booking metadata does not match.');
+        }
+
+        $expectedAmount = (int) round((float) $booking->total_price * 100);
+        $sessionAmount = (int) ($session['amount_total'] ?? -1);
+
+        if ($sessionAmount !== $expectedAmount) {
+            throw new RuntimeException('Stripe session amount mismatch.');
+        }
+
+        $expectedCurrency = strtolower((string) config('services.stripe.currency', 'usd'));
+        $sessionCurrency = strtolower((string) ($session['currency'] ?? ''));
+
+        if ($sessionCurrency !== $expectedCurrency) {
+            throw new RuntimeException('Stripe session currency mismatch.');
+        }
 
         $payment->update([
             'payment_status' => Booking::PAYMENT_PAID,
@@ -138,6 +173,10 @@ class PaymentGatewayService
         string $orderId,
         string $signature,
     ): void {
+        if (! $this->hasRazorpayCredentials()) {
+            throw new RuntimeException('Razorpay credentials are required to verify payment signatures.');
+        }
+
         $payment = $this->createOrUpdatePayment($booking, 'razorpay');
         $serverOrderId = (string) ($payment->gateway_reference ?: data_get($payment->provider_payload, 'id', ''));
 
@@ -176,6 +215,10 @@ class PaymentGatewayService
 
     public function markFailed(Booking $booking): void
     {
+        if ($booking->payment_status === Booking::PAYMENT_PAID) {
+            return;
+        }
+
         $booking->update([
             'payment_status' => Booking::PAYMENT_FAILED,
         ]);
@@ -195,6 +238,10 @@ class PaymentGatewayService
         $payment = $this->createOrUpdatePayment($booking, 'stripe');
 
         if (! $this->hasStripeCredentials()) {
+            if (! $this->canUseDemoMode()) {
+                throw new RuntimeException('Stripe credentials are missing and demo mode is disabled.');
+            }
+
             $payment->update([
                 'transaction_id' => 'DEMO-'.Str::upper(Str::random(10)),
             ]);
@@ -216,6 +263,7 @@ class PaymentGatewayService
                 'cancel_url' => route('payments.cancel', ['booking' => $booking]),
                 'customer_email' => $booking->user->email,
                 'metadata[booking_id]' => (string) $booking->id,
+                'metadata[booking_reference]' => $booking->booking_reference,
                 'line_items[0][quantity]' => 1,
                 'line_items[0][price_data][currency]' => strtolower((string) config('services.stripe.currency', 'usd')),
                 'line_items[0][price_data][unit_amount]' => (int) round((float) $booking->total_price * 100),
@@ -252,6 +300,10 @@ class PaymentGatewayService
         $payment = $this->createOrUpdatePayment($booking, 'razorpay');
 
         if (! $this->hasRazorpayCredentials()) {
+            if (! $this->canUseDemoMode()) {
+                throw new RuntimeException('Razorpay credentials are missing and demo mode is disabled.');
+            }
+
             $payment->update([
                 'transaction_id' => 'DEMO-'.Str::upper(Str::random(10)),
             ]);
@@ -304,5 +356,10 @@ class PaymentGatewayService
     private function hasRazorpayCredentials(): bool
     {
         return filled(config('services.razorpay.key')) && filled(config('services.razorpay.secret'));
+    }
+
+    private function canUseDemoMode(): bool
+    {
+        return app()->environment(['local', 'testing']) || (bool) config('services.payments.demo_mode', false);
     }
 }

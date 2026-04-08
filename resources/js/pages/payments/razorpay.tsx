@@ -1,6 +1,7 @@
-import { Head, router } from '@inertiajs/react';
+import { router } from '@inertiajs/react';
 import { LoaderCircle, ShieldCheck, Sparkles, Wallet } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import SeoHead from '@/components/seo-head';
 import { formatCurrency } from '@/lib/hotel';
 import type { Booking } from '@/types';
 
@@ -97,7 +98,13 @@ export default function RazorpayCheckout({ booking, checkout }: Props) {
 
     return (
         <>
-            <Head title="Razorpay Checkout" />
+            <SeoHead
+                title="Razorpay Checkout"
+                description="Secure Razorpay handoff for your booking payment."
+                path={`/payments/${booking.id}/razorpay`}
+                image={booking.room?.image || booking.room?.gallery?.[0] || undefined}
+                noindex
+            />
 
             <section className="grid gap-6 xl:grid-cols-[1fr_minmax(0,0.88fr)]">
                 <div className="glass-panel rounded-[2.8rem] p-7 sm:p-9">

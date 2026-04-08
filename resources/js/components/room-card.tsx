@@ -21,6 +21,8 @@ export default function RoomCard({
                     src={room.image || room.gallery[0] || 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80'}
                     alt={roomLabel(room)}
                     className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
+                    loading="lazy"
+                    decoding="async"
                 />
                 <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(15,23,42,0.05),rgba(15,23,42,0.4))]" />
                 <div className="absolute inset-x-4 top-4 flex items-start justify-between gap-3">

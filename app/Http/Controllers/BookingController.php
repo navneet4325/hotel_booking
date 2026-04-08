@@ -11,7 +11,9 @@ use App\Services\BookingAvailabilityService;
 use App\Services\PaymentGatewayService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -81,35 +83,50 @@ class BookingController extends Controller
         BookingAvailabilityService $availability,
         PaymentGatewayService $payments,
     ) {
-        $room = Room::query()->findOrFail($request->integer('room_id'));
+        $roomId = $request->integer('room_id');
+        $guests = $request->integer('guests');
         $checkIn = $availability->normalizeDate((string) $request->string('check_in'));
         $checkOut = $availability->normalizeDate((string) $request->string('check_out'));
 
-        if ((int) $request->integer('guests') > $room->capacity) {
-            return back()->withErrors([
-                'guests' => 'The selected room cannot accommodate that many guests.',
-            ]);
-        }
+        $booking = DB::transaction(function () use (
+            $request,
+            $availability,
+            $roomId,
+            $guests,
+            $checkIn,
+            $checkOut
+        ) {
+            $room = Room::query()
+                ->whereKey($roomId)
+                ->lockForUpdate()
+                ->firstOrFail();
 
-        if (! $availability->isAvailable($room, $checkIn, $checkOut)) {
-            return back()->withErrors([
-                'check_in' => 'The selected stay dates are no longer available for this room.',
-            ]);
-        }
+            if ((int) $guests > $room->capacity) {
+                throw ValidationException::withMessages([
+                    'guests' => 'The selected room cannot accommodate that many guests.',
+                ]);
+            }
 
-        $booking = Booking::create([
-            'booking_reference' => 'AST-'.Str::upper(Str::random(8)),
-            'user_id' => $request->user()->id,
-            'room_id' => $room->id,
-            'check_in' => $checkIn,
-            'check_out' => $checkOut,
-            'guests' => $request->integer('guests'),
-            'nights' => $availability->calculateNights($checkIn, $checkOut),
-            'total_price' => $availability->calculateTotal($room, $checkIn, $checkOut),
-            'status' => Booking::STATUS_PENDING,
-            'payment_status' => Booking::PAYMENT_PENDING,
-            'special_requests' => $request->string('special_requests')->trim()->value() ?: null,
-        ]);
+            if (! $availability->isAvailable($room, $checkIn, $checkOut)) {
+                throw ValidationException::withMessages([
+                    'check_in' => 'The selected stay dates are no longer available for this room.',
+                ]);
+            }
+
+            return Booking::create([
+                'booking_reference' => 'AST-'.Str::upper(Str::random(8)),
+                'user_id' => $request->user()->id,
+                'room_id' => $room->id,
+                'check_in' => $checkIn,
+                'check_out' => $checkOut,
+                'guests' => $guests,
+                'nights' => $availability->calculateNights($checkIn, $checkOut),
+                'total_price' => $availability->calculateTotal($room, $checkIn, $checkOut),
+                'status' => Booking::STATUS_PENDING,
+                'payment_status' => Booking::PAYMENT_PENDING,
+                'special_requests' => $request->string('special_requests')->trim()->value() ?: null,
+            ]);
+        });
 
         $booking->load(['room', 'user', 'payment']);
 

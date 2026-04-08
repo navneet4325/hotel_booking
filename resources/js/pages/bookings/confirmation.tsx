@@ -1,5 +1,6 @@
-import { Head, Link } from '@inertiajs/react';
+import { Link } from '@inertiajs/react';
 import { CalendarDays, CheckCircle2, CreditCard, MapPin, ReceiptText } from 'lucide-react';
+import SeoHead from '@/components/seo-head';
 import { formatCurrency, formatDate, paymentMethodLabel, roomLocation } from '@/lib/hotel';
 import type { Booking } from '@/types';
 
@@ -10,7 +11,13 @@ type Props = {
 export default function BookingConfirmation({ booking }: Props) {
     return (
         <>
-            <Head title="Booking Confirmation" />
+            <SeoHead
+                title="Booking Confirmation"
+                description="Your reservation has been confirmed successfully. View stay details, payment status, and booking reference."
+                path={`/bookings/${booking.id}/confirmation`}
+                image={booking.room?.image || booking.room?.gallery?.[0] || undefined}
+                noindex
+            />
 
             <section className="grid gap-6 xl:grid-cols-[1.1fr_minmax(0,0.9fr)]">
                 <div className="glass-panel rounded-[2.5rem] p-7 sm:p-9">

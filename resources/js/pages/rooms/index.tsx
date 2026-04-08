@@ -1,4 +1,4 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Link, router } from '@inertiajs/react';
 import {
     CalendarDays,
     Filter,
@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { startTransition, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import RoomCard from '@/components/room-card';
+import SeoHead from '@/components/seo-head';
 import { heroMedia } from '@/data/site-content';
 import type { Room } from '@/types';
 
@@ -123,11 +124,15 @@ export default function RoomsIndex({ rooms, filters, meta }: Props) {
         const next = normalizeFilters(filters);
         const serialized = JSON.stringify(next);
 
-        if (JSON.stringify(formData) !== serialized) {
-            startTransition(() => {
-                setFormData(next);
+        startTransition(() => {
+            setFormData((current) => {
+                if (JSON.stringify(current) === serialized) {
+                    return current;
+                }
+
+                return next;
             });
-        }
+        });
 
         lastSubmitted.current = JSON.stringify(cleanFilters(next));
     }, [filters]);
@@ -228,7 +233,12 @@ export default function RoomsIndex({ rooms, filters, meta }: Props) {
 
     return (
         <>
-            <Head title="Hotels" />
+            <SeoHead
+                title="Hotels"
+                description="Search and filter premium hotel rooms by dates, guests, amenities, rating, and live availability."
+                path="/rooms"
+                image={heroMedia[0]}
+            />
 
             <section className="relative overflow-hidden rounded-[2.5rem]">
                 <img

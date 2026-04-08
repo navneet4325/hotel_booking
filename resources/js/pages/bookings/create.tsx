@@ -1,6 +1,7 @@
-import { Head, Link, router, usePage } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
 import { CreditCard, ShieldCheck, Wallet } from 'lucide-react';
 import { startTransition, useEffect, useEffectEvent, useState } from 'react';
+import SeoHead from '@/components/seo-head';
 import StatusPill from '@/components/status-pill';
 import { availabilityLabel, formatCurrency } from '@/lib/hotel';
 import type { AvailabilitySummary, Room, User } from '@/types';
@@ -71,7 +72,33 @@ export default function BookingCreate({ room, defaults, initialSummary = null }:
 
     return (
         <>
-            <Head title={`Book ${room.type}`} />
+            <SeoHead
+                title={`Book ${room.type}`}
+                description={`Complete a secure booking for ${room.type} with live availability validation and payment protection.`}
+                path={`/bookings/create/${room.slug}`}
+                image={room.image || room.gallery[0] || undefined}
+                noindex
+            />
+
+            <section className="glass-panel rounded-[2rem] p-4 sm:p-5">
+                <p className="text-xs uppercase tracking-[0.28em] text-slate-500 dark:text-slate-300">
+                    Booking progress
+                </p>
+                <div className="mt-3 flex flex-wrap items-center gap-2 text-xs font-medium">
+                    {['Search', 'Filter', 'Room', 'Book', 'Payment'].map((step, index) => (
+                        <span
+                            key={step}
+                            className={`rounded-full px-3 py-1.5 ${
+                                index < 4
+                                    ? 'bg-[color:var(--brand-primary)] text-white'
+                                    : 'border border-slate-200 bg-white text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300'
+                            }`}
+                        >
+                            {step}
+                        </span>
+                    ))}
+                </div>
+            </section>
 
             <section className="grid gap-8 xl:grid-cols-[1.08fr_minmax(0,0.92fr)]">
                 <div className="rounded-3xl shadow-xl bg-white dark:bg-slate-900 border border-blue-100 dark:border-slate-800 p-10">

@@ -1,4 +1,4 @@
-import { Head, Link, usePage } from '@inertiajs/react';
+import { Link, usePage } from '@inertiajs/react';
 import {
     ArrowRight,
     CalendarDays,
@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import MetricCard from '@/components/metric-card';
 import RoomCard from '@/components/room-card';
+import SeoHead from '@/components/seo-head';
 import {
     destinationCollections,
     featuredVideos,
@@ -51,10 +52,31 @@ export default function Welcome({
     testimonials,
 }: WelcomeProps) {
     const user = usePage().props.auth.user as User | null;
+    const structuredData = {
+        '@context': 'https://schema.org',
+        '@type': 'Hotel',
+        name: 'AetherStay',
+        description:
+            'A premium hotel booking platform with cinematic room discovery, live availability, and secure checkout.',
+        telephone: '+1 (800) 410 1188',
+        email: 'stay@aetherstay.com',
+        address: {
+            '@type': 'PostalAddress',
+            streetAddress: '27 Horizon Marina Drive',
+            addressLocality: 'Miami',
+            addressCountry: 'US',
+        },
+    };
 
     return (
         <>
-            <Head title="Premium Hotel Booking" />
+            <SeoHead
+                title="Premium Hotel Booking"
+                description="Book luxury rooms with real-time availability, immersive room previews, and secure checkout on AetherStay."
+                path="/"
+                image={heroMedia[0]}
+                structuredData={structuredData}
+            />
 
             <section className="glass-panel relative overflow-hidden rounded-[3rem] p-6 sm:p-8 lg:p-10">
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.22),transparent_35%),radial-gradient(circle_at_bottom_left,rgba(251,191,36,0.18),transparent_28%),radial-gradient(circle_at_top_right,rgba(15,23,42,0.1),transparent_32%)]" />

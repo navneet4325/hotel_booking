@@ -1,4 +1,4 @@
-import { Head, Link, router, usePage } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
 import {
     Bath,
     BedDouble,
@@ -13,6 +13,7 @@ import {
 import { startTransition, useEffect, useEffectEvent, useMemo, useState } from 'react';
 import PanoramaViewer from '@/components/panorama-viewer';
 import RoomCard from '@/components/room-card';
+import SeoHead from '@/components/seo-head';
 import StatusPill from '@/components/status-pill';
 import {
     contactDetails,
@@ -105,7 +106,33 @@ export default function RoomShow({
 
     return (
         <>
-            <Head title={room.type} />
+            <SeoHead
+                title={room.type}
+                description={room.short_description}
+                path={`/rooms/${room.slug}`}
+                image={room.image || room.gallery[0] || undefined}
+                type="product"
+            />
+
+            <section className="glass-panel rounded-[2rem] p-4 sm:p-5">
+                <p className="text-xs uppercase tracking-[0.28em] text-slate-500 dark:text-slate-300">
+                    Booking progress
+                </p>
+                <div className="mt-3 flex flex-wrap items-center gap-2 text-xs font-medium">
+                    {['Search', 'Filter', 'Room', 'Book', 'Payment'].map((step, index) => (
+                        <span
+                            key={step}
+                            className={`rounded-full px-3 py-1.5 ${
+                                index < 3
+                                    ? 'bg-[color:var(--brand-primary)] text-white'
+                                    : 'border border-slate-200 bg-white text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300'
+                            }`}
+                        >
+                            {step}
+                        </span>
+                    ))}
+                </div>
+            </section>
 
             {/* HOTEL DETAILS HERO + GALLERY */}
             <section className="grid gap-8 lg:grid-cols-[1.1fr_minmax(0,0.9fr)]">
@@ -159,6 +186,8 @@ export default function RoomShow({
                                 src={image}
                                 alt={`${room.type} highlight ${index + 1}`}
                                 className="h-40 w-full rounded-4xl object-cover shadow-md"
+                                loading="lazy"
+                                decoding="async"
                             />
                         ))}
                     </div>
@@ -336,6 +365,8 @@ export default function RoomShow({
                                     src={image}
                                     alt={`${room.type} highlight ${index + 1}`}
                                     className={index === 0 ? 'h-56 w-full rounded-[1.6rem] object-cover sm:col-span-2' : 'h-40 w-full rounded-[1.6rem] object-cover'}
+                                    loading="lazy"
+                                    decoding="async"
                                 />
                             ))}
                         </div>
@@ -367,7 +398,13 @@ export default function RoomShow({
                             <article key={review.author} className="neo-panel rounded-[1.8rem] p-5">
                                 <div className="flex items-center justify-between gap-3">
                                     <div className="flex items-center gap-3">
-                                        <img src={review.avatar} alt={review.author} className="h-12 w-12 rounded-full object-cover" />
+                                        <img
+                                            src={review.avatar}
+                                            alt={review.author}
+                                            className="h-12 w-12 rounded-full object-cover"
+                                            loading="lazy"
+                                            decoding="async"
+                                        />
                                         <div>
                                             <p className="font-display text-2xl font-semibold text-slate-950 dark:text-white">
                                                 {review.author}

@@ -64,9 +64,10 @@ export default function PanoramaViewer({
         };
     }, []);
 
-    useEffect(() => {
+    const setScene = (nextIndex: number) => {
+        setActiveIndex(nextIndex);
         setOffset(50);
-    }, [activeIndex]);
+    };
 
     const sceneSteps = useMemo(() => {
         return scenes.map((scene, index) => ({
@@ -130,14 +131,14 @@ export default function PanoramaViewer({
                         <div className="flex gap-2">
                             <button
                                 type="button"
-                                onClick={() => setActiveIndex((current) => (current === 0 ? scenes.length - 1 : current - 1))}
+                                onClick={() => setScene(activeIndex === 0 ? scenes.length - 1 : activeIndex - 1)}
                                 className="pointer-events-auto inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white backdrop-blur-xl transition hover:bg-white/20"
                             >
                                 <ChevronLeft className="h-4 w-4" />
                             </button>
                             <button
                                 type="button"
-                                onClick={() => setActiveIndex((current) => (current === scenes.length - 1 ? 0 : current + 1))}
+                                onClick={() => setScene(activeIndex === scenes.length - 1 ? 0 : activeIndex + 1)}
                                 className="pointer-events-auto inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white backdrop-blur-xl transition hover:bg-white/20"
                             >
                                 <ChevronRight className="h-4 w-4" />
@@ -152,7 +153,7 @@ export default function PanoramaViewer({
                     <button
                         key={scene.id}
                         type="button"
-                        onClick={() => setActiveIndex(index)}
+                        onClick={() => setScene(index)}
                         className={cn(
                             'overflow-hidden rounded-[1.5rem] border text-left transition',
                             scene.active

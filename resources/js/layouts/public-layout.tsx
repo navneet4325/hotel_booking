@@ -1,7 +1,9 @@
 import { Head, Link, usePage } from '@inertiajs/react';
+import { Menu } from 'lucide-react';
 import BrandMark from '@/components/brand-mark';
 import FlashBanner from '@/components/flash-banner';
 import ThemeToggle from '@/components/theme-toggle';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { publicNavigation } from '@/data/site-content';
 import { cn } from '@/lib/utils';
 import type { User } from '@/types';
@@ -20,8 +22,64 @@ export default function PublicLayout({
             <Head />
             <div className="mx-auto flex min-h-screen max-w-7xl flex-col px-4 py-4 sm:px-6 lg:px-8">
                 <header className="glass-panel sticky top-4 z-40 rounded-[1.75rem] border border-slate-200/80 px-5 py-4 shadow-[0_18px_40px_-26px_rgba(15,23,42,0.28)]">
-                    <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="flex items-center justify-between gap-4">
                         <BrandMark />
+                        <div className="flex items-center gap-2">
+                            <ThemeToggle />
+                            <Sheet>
+                                <SheetTrigger asChild>
+                                    <button
+                                        type="button"
+                                        className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:text-[color:var(--brand-primary)] lg:hidden dark:border-white/10 dark:bg-white/5 dark:text-slate-100"
+                                    >
+                                        <Menu className="h-5 w-5" />
+                                        <span className="sr-only">Open menu</span>
+                                    </button>
+                                </SheetTrigger>
+                                <SheetContent side="right" className="w-[20rem] border-l border-slate-200 bg-white p-0 dark:border-white/10 dark:bg-slate-950">
+                                    <SheetHeader className="border-b border-slate-200/80 p-5 dark:border-white/10">
+                                        <SheetTitle className="font-display text-2xl text-slate-950 dark:text-white">
+                                            Explore AetherStay
+                                        </SheetTitle>
+                                    </SheetHeader>
+                                    <div className="grid gap-2 p-5">
+                                        {publicNavigation.map((item) => (
+                                            <Link
+                                                key={item.href}
+                                                href={item.label === 'My Bookings' ? (user ? item.href : '/login') : item.href}
+                                                className={cn(
+                                                    'rounded-2xl px-4 py-3 text-sm font-medium transition',
+                                                    (item.label === 'My Bookings'
+                                                        ? currentPath.startsWith('/account/bookings')
+                                                        : currentPath === item.href)
+                                                        ? 'bg-[color:var(--brand-primary)] text-white'
+                                                        : 'border border-slate-200 text-slate-700 hover:border-sky-200 hover:text-[color:var(--brand-primary)] dark:border-white/10 dark:text-slate-200',
+                                                )}
+                                            >
+                                                {item.label}
+                                            </Link>
+                                        ))}
+                                        <Link
+                                            href={user ? (user.role === 'admin' ? '/admin' : '/account') : '/login'}
+                                            className="mt-2 inline-flex h-11 items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 transition hover:border-sky-200 hover:text-[color:var(--brand-primary)] dark:border-white/10 dark:bg-white/5 dark:text-slate-100"
+                                        >
+                                            {user ? 'Dashboard' : 'Login'}
+                                        </Link>
+                                        {!user && (
+                                            <Link
+                                                href="/register"
+                                                className="inline-flex h-11 items-center justify-center rounded-2xl bg-[color:var(--brand-primary)] px-4 text-sm font-medium text-white shadow-[0_18px_34px_-20px_rgba(30,58,138,0.85)]"
+                                            >
+                                                Signup
+                                            </Link>
+                                        )}
+                                    </div>
+                                </SheetContent>
+                            </Sheet>
+                        </div>
+                    </div>
+
+                    <div className="mt-4 hidden lg:block">
                         <nav className="flex flex-wrap items-center gap-2 text-sm">
                             {publicNavigation.map((item) => (
                                 <Link
@@ -53,7 +111,6 @@ export default function PublicLayout({
                                     Signup
                                 </Link>
                             )}
-                            <ThemeToggle />
                         </nav>
                     </div>
                 </header>

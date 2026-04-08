@@ -1,6 +1,7 @@
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import { ArrowUpRight, BedDouble, ImagePlus, PlusCircle, RefreshCw, Search, Sparkles, Star, Users2, Waves } from 'lucide-react';
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
 import InputError from '@/components/input-error';
 import MetricCard from '@/components/metric-card';
 import StatusPill from '@/components/status-pill';
@@ -88,39 +89,39 @@ export default function AdminRooms({
     const [inventoryFilters, setInventoryFilters] = useState(filters);
 
     useEffect(() => {
-        if (!editingRoom) {
-            form.setData({ ...emptyForm });
-            setGalleryText('');
-            setAmenitiesText('');
+        const frame = window.requestAnimationFrame(() => {
+            if (!editingRoom) {
+                form.setData({ ...emptyForm });
+                setGalleryText('');
+                setAmenitiesText('');
 
-            return;
-        }
+                return;
+            }
 
-        form.setData({
-            room_number: editingRoom.room_number,
-            slug: editingRoom.slug,
-            type: editingRoom.type,
-            price: String(editingRoom.price),
-            availability: editingRoom.availability,
-            rating: String(editingRoom.rating),
-            size: String(editingRoom.size),
-            beds: String(editingRoom.beds),
-            bathrooms: String(editingRoom.bathrooms),
-            capacity: String(editingRoom.capacity),
-            floor: editingRoom.floor || '',
-            view: editingRoom.view || '',
-            short_description: editingRoom.short_description,
-            description: editingRoom.description,
-            image: editingRoom.image || '',
-            featured: editingRoom.featured,
+            form.setData({
+                room_number: editingRoom.room_number,
+                slug: editingRoom.slug,
+                type: editingRoom.type,
+                price: String(editingRoom.price),
+                availability: editingRoom.availability,
+                rating: String(editingRoom.rating),
+                size: String(editingRoom.size),
+                beds: String(editingRoom.beds),
+                bathrooms: String(editingRoom.bathrooms),
+                capacity: String(editingRoom.capacity),
+                floor: editingRoom.floor || '',
+                view: editingRoom.view || '',
+                short_description: editingRoom.short_description,
+                description: editingRoom.description,
+                image: editingRoom.image || '',
+                featured: editingRoom.featured,
+            });
+            setGalleryText((editingRoom.gallery ?? []).join('\n'));
+            setAmenitiesText((editingRoom.amenities ?? []).join('\n'));
         });
-        setGalleryText((editingRoom.gallery ?? []).join('\n'));
-        setAmenitiesText((editingRoom.amenities ?? []).join('\n'));
-    }, [editingRoom]);
 
-    useEffect(() => {
-        setInventoryFilters(filters);
-    }, [filters.search, filters.type, filters.availability, filters.featured]);
+        return () => window.cancelAnimationFrame(frame);
+    }, [editingRoom, form]);
 
     const previewImages = useMemo(() => {
         return [form.data.image, ...galleryText.split('\n').map((item) => item.trim())]
@@ -136,8 +137,9 @@ export default function AdminRooms({
             .slice(0, 8);
     }, [amenitiesText]);
 
-    const galleryError = form.errors.gallery || Object.entries(form.errors).find(([key]) => key.startsWith('gallery.'))?.[1];
-    const amenitiesError = form.errors.amenities || Object.entries(form.errors).find(([key]) => key.startsWith('amenities.'))?.[1];
+    const formErrors = form.errors as Record<string, string | undefined>;
+    const galleryError = formErrors.gallery || Object.entries(formErrors).find(([key]) => key.startsWith('gallery.'))?.[1];
+    const amenitiesError = formErrors.amenities || Object.entries(formErrors).find(([key]) => key.startsWith('amenities.'))?.[1];
 
     const submit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -186,6 +188,14 @@ export default function AdminRooms({
     };
 
     const resetFilters = () => {
+        const reset = {
+            search: '',
+            type: '',
+            availability: 'any',
+            featured: 'all',
+        };
+
+        setInventoryFilters(reset);
         router.get('/admin/rooms', {}, { preserveState: true, replace: true });
     };
 

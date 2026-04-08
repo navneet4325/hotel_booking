@@ -2,7 +2,7 @@ import { Head, Link } from '@inertiajs/react';
 import { ArrowRight, CalendarClock, Hotel, Wallet } from 'lucide-react';
 import MetricCard from '@/components/metric-card';
 import StatusPill from '@/components/status-pill';
-import { formatCurrency, formatDate, formatStayRange } from '@/lib/hotel';
+import { formatCurrency, formatStayRange } from '@/lib/hotel';
 import type { Booking } from '@/types';
 
 type Props = {

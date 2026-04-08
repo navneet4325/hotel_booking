@@ -19,6 +19,14 @@ class PaymentController extends Controller
     {
         abort_unless($request->user()->id === $booking->user_id || $request->user()->isAdmin(), 403);
 
+        if (in_array($booking->status, [Booking::STATUS_CANCELLED, Booking::STATUS_COMPLETED], true)) {
+            return back()->with('error', 'Checkout is unavailable for this booking status.');
+        }
+
+        if ($booking->payment_status === Booking::PAYMENT_PAID) {
+            return to_route('bookings.confirmation', $booking);
+        }
+
         try {
             $checkout = $payments->beginCheckout(
                 $booking->load(['room', 'user', 'payment']),
@@ -64,6 +72,10 @@ class PaymentController extends Controller
     {
         abort_unless($request->user()->id === $booking->user_id || $request->user()->isAdmin(), 403);
 
+        if ($booking->payment_status === Booking::PAYMENT_PAID) {
+            return to_route('bookings.confirmation', $booking);
+        }
+
         $payload = $request->validate([
             'razorpay_payment_id' => ['required', 'string'],
             'razorpay_order_id' => ['required', 'string'],
@@ -89,16 +101,47 @@ class PaymentController extends Controller
     /**
      * Handle a completed payment.
      */
-    public function success(Request $request, Booking $booking, PaymentGatewayService $payments): RedirectResponse
+    public function success(Request $request, Booking $booking): Response|RedirectResponse
     {
         abort_unless($request->user()->id === $booking->user_id || $request->user()->isAdmin(), 403);
 
+        $booking->load(['room', 'user', 'payment']);
+
+        if ($booking->payment_status === Booking::PAYMENT_PAID) {
+            return to_route('bookings.confirmation', $booking)->with('success', 'Payment already confirmed for this booking.');
+        }
+
+        return Inertia::render('payments/success', [
+            'booking' => (new BookingResource($booking))->resolve(),
+            'sessionId' => (string) $request->string('session_id'),
+            'isDemo' => $request->boolean('demo'),
+            'confirmUrl' => route('payments.success.confirm', ['booking' => $booking]),
+            'cancelUrl' => route('payments.cancel', ['booking' => $booking]),
+        ]);
+    }
+
+    /**
+     * Confirm a completed payment from the success handoff page.
+     */
+    public function confirmSuccess(Request $request, Booking $booking, PaymentGatewayService $payments): RedirectResponse
+    {
+        abort_unless($request->user()->id === $booking->user_id || $request->user()->isAdmin(), 403);
+
+        if ($booking->payment_status === Booking::PAYMENT_PAID) {
+            return to_route('bookings.confirmation', $booking)->with('success', 'Payment already confirmed and booking locked in.');
+        }
+
+        $payload = $request->validate([
+            'session_id' => ['nullable', 'string'],
+            'demo' => ['nullable', 'boolean'],
+        ]);
+
         try {
-            if ($request->boolean('demo')) {
+            if ((bool) ($payload['demo'] ?? false)) {
                 $payments->completeDemoPayment($booking->load(['payment']));
             } else {
-                $sessionId = (string) $request->string('session_id');
-                $payments->confirmStripePayment($booking, $sessionId);
+                $sessionId = (string) ($payload['session_id'] ?? '');
+                $payments->confirmStripePayment($booking->load(['payment']), $sessionId);
             }
 
             return to_route('bookings.confirmation', $booking)->with('success', 'Payment confirmed and booking locked in.');
@@ -112,11 +155,32 @@ class PaymentController extends Controller
     /**
      * Handle a cancelled checkout.
      */
-    public function cancel(Request $request, Booking $booking, PaymentGatewayService $payments): RedirectResponse
+    public function cancel(Request $request, Booking $booking): Response|RedirectResponse
     {
         abort_unless($request->user()->id === $booking->user_id || $request->user()->isAdmin(), 403);
 
-        $payments->markFailed($booking->load(['payment']));
+        $booking->load(['room', 'payment']);
+
+        if ($booking->payment_status === Booking::PAYMENT_PAID) {
+            return to_route('bookings.confirmation', $booking)->with('success', 'Payment already confirmed for this booking.');
+        }
+
+        return Inertia::render('payments/cancel', [
+            'booking' => (new BookingResource($booking))->resolve(),
+            'confirmUrl' => route('payments.cancel.confirm', ['booking' => $booking]),
+        ]);
+    }
+
+    /**
+     * Confirm cancellation from the checkout cancel page.
+     */
+    public function confirmCancel(Request $request, Booking $booking, PaymentGatewayService $payments): RedirectResponse
+    {
+        abort_unless($request->user()->id === $booking->user_id || $request->user()->isAdmin(), 403);
+
+        if ($booking->payment_status !== Booking::PAYMENT_PAID) {
+            $payments->markFailed($booking->load(['payment']));
+        }
 
         return to_route('account.bookings')->with('error', 'Payment was cancelled before completion.');
     }
